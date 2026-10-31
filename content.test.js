@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {renderPrompt,matchingCases} from './app.js';
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {renderPrompt,matchingCases,renderLessonFlow} from './app.js';
 const {cases,roles}=JSON.parse(readFileSync(new URL('./content.json',import.meta.url)));
 test('exactly manuscript cases and nine unique functions',()=>{assert.equal(cases.length,3);assert.equal(roles.length,9);assert.equal(new Set(roles.map(r=>r.id)).size,9)});
 test('role matching permits overlaps and honest empty roles',()=>{assert.equal(matchingCases(cases,roles,'','1').length,2);assert.equal(matchingCases(cases,roles,'','7').length,0);assert.equal(matchingCases(cases,roles,'','8').length,0)});
@@ -9,3 +9,8 @@ test('public code has no persistence or AI endpoint',()=>{const code=readFileSyn
 test('data values do not include raw private artifacts',()=>{const source=readFileSync(new URL('./content.json',import.meta.url),'utf8');assert.ok(!/drive\.google|\/workspace\/|source\.hwp|body-text\.txt/.test(source))});
 
 test('goal fields never append sentence endings',()=>{for(const c of cases){assert.ok(c.prompt.includes('학습 목표: [학습 목표]'));const p=renderPrompt(c.prompt,{'학습 목표':'내 말로 설명한다.'});assert.ok(p.includes('학습 목표: 내 말로 설명한다.\n'));assert.ok(!p.includes('설명한다.야'));}});
+
+test('school lesson flow keeps user stages and map in AI phase',()=>{const school=cases.find(c=>c.id==='school');assert.equal(school.lessonFlow.length,3);assert.ok(school.lessonFlow[1].activities.some(a=>a.includes('여행 지도')));assert.ok(school.lessonFlow[2].activities[0].includes('기행문'));});
+
+test('gallery omits empty placeholders and escapes photo captions',()=>{const school=cases.find(c=>c.id==='school');const blank=structuredClone(school);blank.lessonFlow.forEach(s=>s.photos=[]);const html=renderLessonFlow(blank);assert.ok(html.includes('학교 속 탐험하기'));assert.ok(!html.includes('photo-open'));const copy=structuredClone(blank);copy.lessonFlow[0].photos=[{src:'/media-school-1.webp',alt:'<script>',caption:'<b>안전</b>',width:100,height:200}];const gallery=renderLessonFlow(copy);assert.ok(gallery.includes('&lt;script&gt;'));assert.ok(gallery.includes('&lt;b&gt;안전&lt;/b&gt;'));assert.ok(gallery.includes('width="100" height="200"'));});
+test('approved gallery contains exactly six local images mapped 2/3/1',()=>{const flow=cases.find(c=>c.id==='school').lessonFlow;assert.deepEqual(flow.map(s=>s.photos.length),[2,3,1]);for(const p of flow.flatMap(s=>s.photos)){assert.match(p.src,/^\/media-school-0[1-6]\.png$/);assert.ok(p.alt.length>10);assert.ok(p.caption);assert.ok(p.width>0&&p.height>0);assert.ok(readFileSync(new URL('.'+p.src,import.meta.url)).length>0)}});
