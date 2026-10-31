@@ -1,0 +1,1 @@
+{"name":"hah-prompt-library","version":"1.0.0","private":true,"type":"module","scripts":{"check":"node --check app.js && node --test *.test.js","build":"node build.mjs","dev":"node serve.mjs"},"engines":{"node":">=20"}}
