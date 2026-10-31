@@ -7,3 +7,5 @@ test('prompt replaces repeated fields preserves literal user text',()=>{const re
 test('all prompts retain safety guidance and human thinking',()=>{for(const c of cases){assert.ok(c.prompt.includes('개인정보'));assert.ok(c.prompt.includes('한 번에 질문'));assert.equal(c.stages.length,3);assert.ok(c.roles.every(id=>roles.some(r=>r.id===id)))}});
 test('public code has no persistence or AI endpoint',()=>{const code=readFileSync(new URL('./app.js',import.meta.url),'utf8');assert.ok(!/localStorage|sessionStorage|indexedDB|sendBeacon/.test(code));assert.equal((code.match(/fetch\(/g)||[]).length,1);assert.ok(code.includes("fetch('/content.json')"))});
 test('data values do not include raw private artifacts',()=>{const source=readFileSync(new URL('./content.json',import.meta.url),'utf8');assert.ok(!/drive\.google|\/workspace\/|source\.hwp|body-text\.txt/.test(source))});
+
+test('goal fields never append sentence endings',()=>{for(const c of cases){assert.ok(c.prompt.includes('학습 목표: [학습 목표]'));const p=renderPrompt(c.prompt,{'학습 목표':'내 말로 설명한다.'});assert.ok(p.includes('학습 목표: 내 말로 설명한다.\n'));assert.ok(!p.includes('설명한다.야'));}});
